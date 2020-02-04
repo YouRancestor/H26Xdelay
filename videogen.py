@@ -7,12 +7,20 @@ frame_height=540
 
 pic = np.ones((frame_height, frame_width, 3), dtype=np.uint8) # generate a picture
 
-container = av.open('test.mp4', mode='w')
+container = av.open('test1.264', mode='w')
 
-video_stream = container.add_stream('libx264', rate=25)
+video_stream = container.add_stream('h264_nvenc', rate=25)
 video_stream.width=frame_width
 video_stream.height=frame_height
 video_stream.pix_fmt='yuv420p'
+video_stream.codec_context.options={
+    # 'preset':'fast', # for h264_nvenc
+    'delay':'0', # for h264_nvenc
+    # 'zerolatency':'1' # for h264_nvenc
+}
+
+container2 = av.open('test.264', mode='r')
+video_stream2 = container2.streams.video[0]
 
 for i in range(100):
 
@@ -26,6 +34,15 @@ for i in range(100):
 
     for packet in video_stream.encode(frame):
         container.mux(packet)
+
+        # for pkt in container2.demux():
+        #     pass
+
+        for frm in video_stream2.decode(packet):
+            arr = frm.to_ndarray()
+            im = cv2.cvtColor(arr, cv2.COLOR_YUV2BGR_I420)
+            cv2.imshow('decoded', im)
+
     
     cv2.imshow('origin', img)
 
